@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
+from time import sleep
 """
+Blake Fordham
+
 Elevator features:
 1. Initialize the elevator simulation with the desired number of elevators, and the desired number of floors.
 Assume ground/min of 1.
@@ -16,7 +19,6 @@ Assume ground/min of 1.
 8. The elevator should keep track of how many trips it has made, and how many floors it has passed.
     The elevator should go into maintenance mode after 100 trips, and stop functioning until serviced,
     therefore not be available for elevator calls.
-
 """
 
 
@@ -37,6 +39,7 @@ class Elevator(object):
         self.trips = 0
         self.mileage = 0        # total number of floors passed since last maintanence
         self.total_mileage = 0  # lifetime total number of floors passed
+        self.total_trips = 0    # number of lifetime trips
 
     def __str__(self):
         if self.open:
@@ -114,6 +117,7 @@ class Elevator(object):
             if not self.stops:
                 self.occupied = False
                 self.trips += 1
+                self.total_trips += 1
                 self.direction = 'down' if self.ascending else 'up'
 
     def move(self):
@@ -134,19 +138,28 @@ class Controller(object):
         self.elevators = [Elevator(i, top_floor) for i in range(elevators)]
 
     def call_light(self, floor):
+        # TODO depending on the 'real' implementation of the systems, this would have to be some sort of async call
         while True:
-            available = [e for e in self.elevators if e.can_access(floor)]
+            # get a list of all elevators that are not in maitenance and can reach the floor
+            available = sorted([e for e in self.elevators if e.can_access(floor)], cmp=lambda x: x.distance_from(floor))
+            if not available:
+                # nothing is available, wait a second and try again
+                sleep(1)
+                continue
+            unoccupied =[e for e in available if not e.is_occupied]
             # see if an empty elevator is already there
-            at_floor = [e for e in available if e.floor == floor and not e.is_occupied]
-            if at_floor:
-                at_floor[0].call_request(floor)
+            if unoccupied and unoccupied[0].floor == floor:
+                unoccupied[0].open_door()
                 break
             # if not find closest moving toward floor
-            moving_to = [e for e in available if e.moving_toward(floor)].sort(lambda e: distance_from(floor))
+            moving_to = sorted([e for e in available if e.moving_toward(floor)], lambda x: x.distance_from(floor))
             if moving_to:
                 moving_to[0].call_request(floor)
                 break
-            # if none, find closest
-            # otherwise all are occupied and moving away from floor pick one that will be empty soonest
-            pass
+            # if none, find closest unoccupied
+            if unoccupied:
+                unoccupied[0].call_request(floor)
+                break
+            # otherwise all are occupied and moving away from floor, wait and try again
+            sleep(1)
 
