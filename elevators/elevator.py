@@ -26,11 +26,24 @@ class Elevator(object):
         self.id = id
         # current status
         self.current = bottom_floor
+        self.direction = 'up'
         self.occupied = False
-        self.moving_to = None
+        self.stops = []
         self.open = False
 
         # history & maintenance
         self.trips = 0
-        self.mileage = 0     # total # of floors passed
+        self.mileage = 0  # total # of floors passed
+
+    def add_stop(self, floor):
+        if floor not in self.stops:
+            self.stops.append(floor)
+
+    @property
+    def is_moving(self):
+        return not self.open and len(self.stops) > 0
+
+    @property
+    def is_open(self):
+        return self.open
 
