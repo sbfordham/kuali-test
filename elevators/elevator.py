@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 
-from time import sleep
-
-
 """
 Elevator features:
 1. Initialize the elevator simulation with the desired number of elevators, and the desired number of floors.
@@ -24,8 +21,6 @@ Assume ground/min of 1.
 
 
 class Elevator(object):
-    WAIT_TIME = 10
-
     def __init__(self, id, top_floor, bottom_floor=1):
         self.id = id
         # floor status
@@ -33,11 +28,12 @@ class Elevator(object):
         self.direction = 'up'
         self.occupied = False
         self.stops = []
-        self.open = False
+        self.open = True
 
         # history & maintenance
         self.trips = 0
-        self.mileage = 0     # total # of floors passed
+        self.mileage = 0        # total number of floors passed since last maintanence
+        self.total_mileage = 0  # lifetime total number of floors passed
 
     @property
     def is_moving(self):
@@ -57,12 +53,11 @@ class Elevator(object):
 
     def open_door(self):
         if not self.open:
-            sleep(self.WAIT_TIME)
             self.open = True
 
     def close_door(self):
         if self.open:
-            sleep(self.WAIT_TIME)
+            # TODO stuff woud go here to avoid closing the door too quickly and wait if the door is blocked
             self.open = False
 
     def add_stop(self, floor):
@@ -84,10 +79,13 @@ class Elevator(object):
     def move_one(self):
         self.floor += 1 if self.ascending else -1
         self.mileage += 1
+        self.total_mileage += 1
         if self.floor in self.stops:
             self.stops.remove(self.floor)
             self.open_door()
-
+            if not self.stops:
+                self.occupied = False
+                self.trips += 1
 
     def move(self):
         self.close_door()
@@ -97,4 +95,6 @@ class Elevator(object):
             self.direction = 'up'
         self.move_one()
 
-
+    def maintenance_completed(self):
+        self.trips = 0
+        self.mileage = 0
