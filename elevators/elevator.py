@@ -21,6 +21,7 @@ Assume ground/min of 1.
 
 
 class Elevator(object):
+    """Tracks the state of the elevator, assumes the actual physical elevator interacts with this class"""
     def __init__(self, id, top_floor, bottom_floor=1):
         self.id = id
         # floor status
@@ -67,6 +68,14 @@ class Elevator(object):
 
     def can_access(self, floor):
         return self.min_floor <= floor <= self.max_floor and not self.needs_maintanence
+
+    def moving_toward(self, floor):
+        if not self.occupied:
+            return False
+        return (self.direction == 'up' and self.floor < floor) or (self.direction == 'down' and self.floor > floor)
+
+    def distance_from(self, floor):
+        return abs(self.floor - floor)
 
     def open_door(self):
         if not self.open:
@@ -120,9 +129,24 @@ class Elevator(object):
         self.mileage = 0
 
 
-class Controller(object)
+class Controller(object):
     def __init__(self, elevators, top_floor):
         self.elevators = [Elevator(i, top_floor) for i in range(elevators)]
 
     def call_light(self, floor):
-        available = [e for e in self.elevators if e.can_access(floor)]
+        while True:
+            available = [e for e in self.elevators if e.can_access(floor)]
+            # see if an empty elevator is already there
+            at_floor = [e for e in available if e.floor == floor and not e.is_occupied]
+            if at_floor:
+                at_floor[0].call_request(floor)
+                break
+            # if not find closest moving toward floor
+            moving_to = [e for e in available if e.moving_toward(floor)].sort(lambda e: distance_from(floor))
+            if moving_to:
+                moving_to[0].call_request(floor)
+                break
+            # if none, find closest
+            # otherwise all are occupied and moving away from floor pick one that will be empty soonest
+            pass
+
