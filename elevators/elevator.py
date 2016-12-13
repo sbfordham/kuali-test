@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from time import sleep
+
 
 """
 Elevator features:
@@ -22,10 +24,12 @@ Assume ground/min of 1.
 
 
 class Elevator(object):
+    WAIT_TIME = 10
+
     def __init__(self, id, top_floor, bottom_floor=1):
         self.id = id
-        # current status
-        self.current = bottom_floor
+        # floor status
+        self.floor = bottom_floor
         self.direction = 'up'
         self.occupied = False
         self.stops = []
@@ -33,11 +37,7 @@ class Elevator(object):
 
         # history & maintenance
         self.trips = 0
-        self.mileage = 0  # total # of floors passed
-
-    def add_stop(self, floor):
-        if floor not in self.stops:
-            self.stops.append(floor)
+        self.mileage = 0     # total # of floors passed
 
     @property
     def is_moving(self):
@@ -46,4 +46,55 @@ class Elevator(object):
     @property
     def is_open(self):
         return self.open
+
+    @property
+    def is_occupied(self):
+        return self.occupied
+
+    @property
+    def ascending(self):
+        return self.direction == 'up'
+
+    def open_door(self):
+        if not self.open:
+            sleep(self.WAIT_TIME)
+            self.open = True
+
+    def close_door(self):
+        if self.open:
+            sleep(self.WAIT_TIME)
+            self.open = False
+
+    def add_stop(self, floor):
+        """Add the requested floor to the list of stops (if not already in the list)"""
+        if floor != self.floor and floor not in self.stops:
+            self.stops.append(floor)
+
+    def passenger_request(self, floor):
+        """passenger in the car pushed a floor button"""
+        self.occupied = True
+        self.add_stop(floor)
+        self.move()
+
+    def call_request(self, floor):
+        """The call button on level 'floor' was pressed"""
+        self.add_stop(floor)
+        self.move()
+
+    def move_one(self):
+        self.floor += 1 if self.ascending else -1
+        self.mileage += 1
+        if self.floor in self.stops:
+            self.stops.remove(self.floor)
+            self.open_door()
+
+
+    def move(self):
+        self.close_door()
+        if self.direction == 'up' and max(self.stops) < self.floor:
+            self.direction = 'down'
+        elif self.direction == 'down' and min(self.stops) > self.floor:
+            self.direction = 'up'
+        self.move_one()
+
 
