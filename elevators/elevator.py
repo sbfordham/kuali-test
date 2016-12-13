@@ -24,6 +24,8 @@ class Elevator(object):
     def __init__(self, id, top_floor, bottom_floor=1):
         self.id = id
         # floor status
+        self.min_floor = bottom_floor
+        self.max_floor = top_floor
         self.floor = bottom_floor
         self.direction = 'up'
         self.occupied = False
@@ -35,6 +37,14 @@ class Elevator(object):
         self.mileage = 0        # total number of floors passed since last maintanence
         self.total_mileage = 0  # lifetime total number of floors passed
 
+    def __str__(self):
+        if self.open:
+            return 'Elevator {0} open on Floor {1}'.format(self.id, self.floor)
+        elif self.stops:
+            return 'Elevator {0} moving {2} passing Flo0r {1}'.format(self.id, self.floor, self.direction)
+        else:
+            return 'Elevator {0} waiting on Floor {1}'.format(self.id, self.floor)
+
     @property
     def is_moving(self):
         return not self.open and len(self.stops) > 0
@@ -44,12 +54,19 @@ class Elevator(object):
         return self.open
 
     @property
+    def needs_maintanence(self):
+        return not self.occupied and self.trips >= 100
+
+    @property
     def is_occupied(self):
         return self.occupied
 
     @property
     def ascending(self):
         return self.direction == 'up'
+
+    def can_access(self, floor):
+        return self.min_floor <= floor <= self.max_floor and not self.needs_maintanence
 
     def open_door(self):
         if not self.open:
@@ -61,7 +78,9 @@ class Elevator(object):
             self.open = False
 
     def add_stop(self, floor):
-        """Add the requested floor to the list of stops (if not already in the list)"""
+        """Add the requested floor to the list of stops (if not already in the list)."""
+        if floor < self.min_floor or floor > self.max_floor:
+            raise ValueError("Cannot reach floor {}".format(floor))
         if floor != self.floor and floor not in self.stops:
             self.stops.append(floor)
 
@@ -86,6 +105,7 @@ class Elevator(object):
             if not self.stops:
                 self.occupied = False
                 self.trips += 1
+                self.direction = 'down' if self.ascending else 'up'
 
     def move(self):
         self.close_door()
@@ -98,3 +118,11 @@ class Elevator(object):
     def maintenance_completed(self):
         self.trips = 0
         self.mileage = 0
+
+
+class Controller(object)
+    def __init__(self, elevators, top_floor):
+        self.elevators = [Elevator(i, top_floor) for i in range(elevators)]
+
+    def call_light(self, floor):
+        available = [e for e in self.elevators if e.can_access(floor)]
